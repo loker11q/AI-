@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKY AI Camera - 智能车辆检测系统</title>
+    <style>
+        /* ========== Reset & Base ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        a { color: #60a5fa; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* ========== Hero ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%);
+            top: -200px;
+            right: -200px;
+            animation: float 20s ease-in-out infinite;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 70%);
+            bottom: -100px;
+            left: -100px;
+            animation: float 15s ease-in-out infinite reverse;
+        }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, -30px); }
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        .hero p {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: #94a3b8;
+            max-width: 600px;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        .hero .tags {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+        .hero .tags span {
+            background: rgba(96,165,250,0.15);
+            border: 1px solid rgba(96,165,250,0.25);
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            color: #93c5fd;
+        }
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #64748b;
+            font-size: 0.85rem;
+            animation: bounce 2s ease-in-out infinite;
+            z-index: 1;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(8px); }
+        }
+
+        /* ========== Section Common ========== */
+        section { padding: 5rem 1.5rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section-title {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #f1f5f9;
+        }
+        .section-subtitle {
+            color: #64748b;
+            margin-bottom: 3rem;
+            font-size: 1rem;
+        }
+
+        /* ========== Image Gallery ========== */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .gallery-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            aspect-ratio: 4 / 3;
+            background: #1e1e2a;
+            border: 1px solid #2a2a3a;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .gallery-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(96,165,250,0.15);
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .gallery-item .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: #fff;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .gallery-item:hover .overlay { opacity: 1; }
+
+        /* ========== Lightbox ========== */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .lightbox.active { display: flex; }
+        .lightbox img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .lightbox .close {
+            position: absolute;
+            top: 1.5rem;
+            right: 2rem;
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: color 0.2s;
+        }
+        .lightbox .close:hover { color: #60a5fa; }
+        .lightbox .nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            color: #fff;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .lightbox .nav:hover { background: rgba(255,255,255,0.2); }
+        .lightbox .prev { left: 1.5rem; }
+        .lightbox .next { right: 1.5rem; }
+        .lightbox .counter {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        /* ========== Video Section ========== */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 2rem;
+        }
+        .video-card {
+            background: #1a1a2a;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .video-card video {
+            width: 100%;
+            display: block;
+            background: #000;
+            max-height: 400px;
+        }
+        .video-card .video-info {
+            padding: 1rem 1.25rem;
+        }
+        .video-card .video-info h3 {
+            font-size: 1rem;
+            color: #f1f5f9;
+            margin-bottom: 0.25rem;
+        }
+        .video-card .video-info p {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .video-placeholder {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3rem;
+            background: #1a1a2a;
+            border: 1px dashed #2a2a3a;
+            border-radius: 12px;
+            color: #64748b;
+        }
+        .video-placeholder a { color: #60a5fa; }
+
+        /* ========== Tech Stack ========== */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .tech-card {
+            background: #1a1a2a;
+            border: 1px solid #2a2a3a;
+            border-radius: 10px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+        .tech-card:hover {
+            border-color: #60a5fa;
+            transform: translateY(-2px);
+        }
+        .tech-card .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .tech-card h4 { font-size: 0.95rem; color: #f1f5f9; margin-bottom: 0.25rem; }
+        .tech-card p { font-size: 0.8rem; color: #64748b; }
+
+        /* ========== Architecture ========== */
+        .arch-section {
+            text-align: center;
+        }
+        .arch-flow {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 2rem;
+        }
+        .arch-node {
+            background: #1a1a2a;
+            border: 1px solid #2a2a3a;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #93c5fd;
+        }
+        .arch-arrow { color: #64748b; font-size: 1.2rem; }
+
+        /* ========== Footer ========== */
+        footer {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: #475569;
+            font-size: 0.85rem;
+            border-top: 1px solid #1e1e2a;
+        }
+
+        /* ========== Responsive ========== */
+        @media (max-width: 768px) {
+            section { padding: 3rem 1rem; }
+            .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+            .video-grid { grid-template-columns: 1fr; }
+            .lightbox .nav { font-size: 1.5rem; padding: 0.5rem 0.75rem; }
+            .lightbox .prev { left: 0.5rem; }
+            .lightbox .next { right: 0.5rem; }
+        }
+        @media (max-width: 480px) {
+            .gallery-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== HERO ==================== -->
+    <section class="hero">
+        <h1>AKY AI Camera</h1>
+        <p>基于 Horizon RDK X5 与 YOLOv5s 的智能车辆检测系统<br>边缘计算 · 实时推理 · 工业级部署</p>
+        <div class="tags">
+            <span>RDK X5</span>
+            <span>YOLOv5s</span>
+            <span>BPU 加速</span>
+            <span>Python 3.10</span>
+            <span>MQTT</span>
+            <span>RTSP</span>
+        </div>
+        <div class="scroll-indicator">&#8595; 向下滚动</div>
+    </section>
+
+    <!-- ==================== PROJECT OVERVIEW ==================== -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">项目概述</h2>
+            <p class="section-subtitle">Project Overview</p>
+            <div style="background:#1a1a2a; border:1px solid #2a2a3a; border-radius:12px; padding:2rem; max-width:800px;">
+                <p style="margin-bottom:1rem; color:#cbd5e1;">
+                    本系统部署在 <strong>地平线 RDK X5</strong> 边缘计算开发板上，通过接入安嘉 IP 摄像头（以太网 + WiFi）和 USB 星光级摄像头，实现实时的车辆检测与识别。
+                </p>
+                <p style="margin-bottom:1rem; color:#cbd5e1;">
+                    核心推理采用 <strong>YOLOv5s</strong> 模型，经过地平线工具链编译为 BPU 可执行 <code>.bin</code> 格式，在 RDK X5 的 BPU 单元上高效运行。检测结果通过 MQTT 协议上报，支持远程监控与告警。
+                </p>
+                <p style="color:#cbd5e1;">
+                    同时集成了串口步进电机驱动、GPIO LED 指示灯控制、系统资源监控（CPU/内存/温度）以及七牛云 RTMP 推流功能，是一套完整的边缘 AI 视觉解决方案。
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== HARDWARE GALLERY ==================== -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">硬件实拍</h2>
+            <p class="section-subtitle">Hardware Gallery &mdash; 点击图片查看大图</p>
+            <div class="gallery-grid" id="gallery">
+                <div class="gallery-item" data-index="0">
+                    <img src="image/IMG_1426.jpg" alt="RDK X5 开发板正面" loading="lazy">
+                    <div class="overlay">RDK X5 开发板正面</div>
+                </div>
+                <div class="gallery-item" data-index="1">
+                    <img src="image/IMG_1428.jpg" alt="RDK X5 开发板接口" loading="lazy">
+                    <div class="overlay">RDK X5 开发板接口</div>
+                </div>
+                <div class="gallery-item" data-index="2">
+                    <img src="image/IMG_1443.jpg" alt="安嘉 IP 摄像头" loading="lazy">
+                    <div class="overlay">安嘉 IP 摄像头（以太网）</div>
+                </div>
+                <div class="gallery-item" data-index="3">
+                    <img src="image/IMG_1445.jpg" alt="摄像头安装实景" loading="lazy">
+                    <div class="overlay">摄像头安装实景</div>
+                </div>
+                <div class="gallery-item" data-index="4">
+                    <img src="image/IMG_1459.jpg" alt="系统运行状态" loading="lazy">
+                    <div class="overlay">系统运行状态</div>
+                </div>
+                <div class="gallery-item" data-index="5">
+                    <img src="image/IMG_1460.jpg" alt="整体部署效果" loading="lazy">
+                    <div class="overlay">整体部署效果</div>
+                </div>
+                <div class="gallery-item" data-index="6">
+                    <img src="image/QQ_1782647736804.png" alt="系统截图" loading="lazy">
+                    <div class="overlay">系统运行截图</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== LIGHTBOX ==================== -->
+    <div class="lightbox" id="lightbox">
+        <button class="close" id="lbClose">&times;</button>
+        <button class="nav prev" id="lbPrev">&#8249;</button>
+        <button class="nav next" id="lbNext">&#8250;</button>
+        <img id="lbImg" src="" alt="">
+        <div class="counter" id="lbCounter"></div>
+    </div>
+
+    <!-- ==================== VIDEO DEMOS ==================== -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">演示视频</h2>
+            <p class="section-subtitle">Demo Videos &mdash; 系统运行实况</p>
+
+            <div class="video-grid">
+                <div class="video-card">
+                    <video controls preload="metadata" poster="image/IMG_1426.jpg">
+                        <source src="image/IMG_1433.MOV" type="video/quicktime">
+                        您的浏览器不支持视频播放
+                    </video>
+                    <div class="video-info">
+                        <h3>现场演示 &mdash; 车辆检测</h3>
+                        <p>IMG_1433.MOV &middot; 实时车辆检测演示</p>
+                    </div>
+                </div>
+
+                <div class="video-card">
+                    <video controls preload="metadata" poster="image/IMG_1445.jpg">
+                        <source src="image/系统操作.mp4" type="video/mp4">
+                        您的浏览器不支持视频播放
+                    </video>
+                    <div class="video-info">
+                        <h3>系统操作演示</h3>
+                        <p>系统操作.mp4 &middot; 系统功能操作指南</p>
+                    </div>
+                </div>
+
+                <div class="video-card">
+                    <video controls preload="metadata" poster="image/IMG_1443.jpg">
+                        <source src="image/cz.mp4" type="video/mp4">
+                        您的浏览器不支持视频播放
+                    </video>
+                    <div class="video-info">
+                        <h3>操作流程</h3>
+                        <p>cz.mp4 &middot; 操作流程演示</p>
+                    </div>
+                </div>
+
+                <div class="video-placeholder">
+                    <p style="margin-bottom:0.5rem;">
+                        &#9432; 视频文件较大时，建议上传至
+                        <a href="https://www.bilibili.com" target="_blank">B站</a>
+                        或
+                        <a href="https://www.youtube.com" target="_blank">YouTube</a>
+                        后嵌入播放
+                    </p>
+                    <p style="font-size:0.8rem;">
+                        GitHub 单个文件限制 25MB &middot; 大文件推荐使用 Git LFS 管理
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== TECH STACK ==================== -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">技术栈</h2>
+            <p class="section-subtitle">Tech Stack</p>
+            <div class="tech-grid">
+                <div class="tech-card">
+                    <div class="icon">&#129302;</div>
+                    <h4>RDK X5</h4>
+                    <p>地平线边缘计算开发板 · BPU 推理单元</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128200;</div>
+                    <h4>YOLOv5s</h4>
+                    <p>轻量级目标检测模型 · 编译为 BPU .bin</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128248;</div>
+                    <h4>OpenCV</h4>
+                    <p>视频流采集与图像预处理</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128172;</div>
+                    <h4>MQTT</h4>
+                    <p>实时消息推送 · 远程告警</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#127760;</div>
+                    <h4>RTSP / RTMP</h4>
+                    <p>实时视频流传输与推流</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#9729;</div>
+                    <h4>七牛云</h4>
+                    <p>云端存储与 CDN 加速</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128268;</div>
+                    <h4>串口通信</h4>
+                    <p>步进电机驱动控制</p>
+                </div>
+                <div class="tech-card">
+                    <div class="icon">&#128299;</div>
+                    <h4>GPIO</h4>
+                    <p>LED 指示灯控制</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== ARCHITECTURE ==================== -->
+    <section>
+        <div class="container arch-section">
+            <h2 class="section-title">系统架构</h2>
+            <p class="section-subtitle">System Architecture</p>
+            <div class="arch-flow">
+                <span class="arch-node">IP Camera</span>
+                <span class="arch-arrow">&#8594;</span>
+                <span class="arch-node">RTSP 拉流</span>
+                <span class="arch-arrow">&#8594;</span>
+                <span class="arch-node">OpenCV 解码</span>
+                <span class="arch-arrow">&#8594;</span>
+                <span class="arch-node">YOLOv5s BPU</span>
+                <span class="arch-arrow">&#8594;</span>
+                <span class="arch-node">MQTT 上报</span>
+            </div>
+            <div class="arch-flow" style="margin-top:1rem;">
+                <span class="arch-node">USB 摄像头</span>
+                <span class="arch-arrow">&#8594;</span>
+                <span class="arch-node">本地预览</span>
+                <span class="arch-arrow">&#8594;</span>
+                <span class="arch-node">RTMP 推流</span>
+                <span class="arch-arrow">&#8594;</span>
+                <span class="arch-node">七牛云</span>
+            </div>
+            <div class="arch-flow" style="margin-top:1rem;">
+                <span class="arch-node">串口电机</span>
+                <span class="arch-arrow">&#8596;</span>
+                <span class="arch-node">RDK X5</span>
+                <span class="arch-arrow">&#8596;</span>
+                <span class="arch-node">GPIO LED</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer>
+        <p>AKY AI Camera &mdash; 基于 Horizon RDK X5 的智能车辆检测系统</p>
+        <p style="margin-top:0.25rem;">&copy; 2026 &middot; 仅供个人作品展示</p>
+    </footer>
+
+    <!-- ==================== LIGHTBOX JS ==================== -->
+    <script>
+        (function() {
+            const gallery = document.getElementById('gallery');
+            const lightbox = document.getElementById('lightbox');
+            const lbImg = document.getElementById('lbImg');
+            const lbCounter = document.getElementById('lbCounter');
+            const lbClose = document.getElementById('lbClose');
+            const lbPrev = document.getElementById('lbPrev');
+            const lbNext = document.getElementById('lbNext');
+
+            const items = gallery.querySelectorAll('.gallery-item');
+            const images = Array.from(items).map(item => item.querySelector('img').src);
+
+            let currentIndex = 0;
+
+            function openLightbox(index) {
+                currentIndex = index;
+                lbImg.src = images[currentIndex];
+                lbCounter.textContent = (currentIndex + 1) + ' / ' + images.length;
+                lightbox.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeLightbox() {
+                lightbox.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            function prevImage() {
+                currentIndex = (currentIndex - 1 + images.length) % images.length;
+                lbImg.src = images[currentIndex];
+                lbCounter.textContent = (currentIndex + 1) + ' / ' + images.length;
+            }
+
+            function nextImage() {
+                currentIndex = (currentIndex + 1) % images.length;
+                lbImg.src = images[currentIndex];
+                lbCounter.textContent = (currentIndex + 1) + ' / ' + images.length;
+            }
+
+            items.forEach(item => {
+                item.addEventListener('click', function() {
+                    openLightbox(parseInt(this.dataset.index));
+                });
+            });
+
+            lbClose.addEventListener('click', closeLightbox);
+            lbPrev.addEventListener('click', prevImage);
+            lbNext.addEventListener('click', nextImage);
+
+            document.addEventListener('keydown', function(e) {
+                if (!lightbox.classList.contains('active')) return;
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') prevImage();
+                if (e.key === 'ArrowRight') nextImage();
+            });
+
+            lightbox.addEventListener('click', function(e) {
+                if (e.target === lightbox) closeLightbox();
+            });
+        })();
+    </script>
+
+</body>
+</html>
